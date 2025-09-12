@@ -1,4 +1,3 @@
-import 'package:admin/color/color-palette.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
@@ -12,7 +11,7 @@ Widget divider() {
   );
 }
 
-Widget titleWidget(String title, double fontsize, FontWeight fontweight) {
+Widget titleWidget(String title, double? fontsize, FontWeight fontweight) {
   return Padding(
     padding: const EdgeInsets.all(8.0),
     child: Text(

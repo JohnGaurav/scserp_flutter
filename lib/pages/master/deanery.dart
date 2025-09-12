@@ -29,6 +29,7 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
   List<dynamic> programList = [];
   String? program;
   String? title;
+  int? selectedProgramId;
 
   Future<void> apiData() async {
     if (selectedCampus == null) {
@@ -57,7 +58,6 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
   }
 
   Future<void> addDeaneryDialog(context) async {
-    int? selectedProgramId;
     return showDialog<void>(
       context: context,
       builder: (context) {
@@ -74,7 +74,8 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
                       value: selectedProgramId,
                       items: programList.map((prog) {
                         return DropdownMenuItem<int>(
-                          value: prog["id"] as int, // set id as value
+                          value: (prog["id"]),
+                          // set id as value
                           child: Text(
                             prog['campus']["name"] + ' - ' + prog["name"],
                           ), // display name
@@ -101,7 +102,20 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
               actions: <Widget>[
                 SizedBox(
                   height: 40,
-                  width: MediaQuery.of(context).size.width / 3,
+                  width: MediaQuery.of(context).size.width / 8,
+                  child: ElevatedButton(
+                    style: ButtonStyle(
+                      backgroundColor: WidgetStatePropertyAll(Colors.red),
+                    ),
+                    child: Text('Close', style: TextStyle(color: Colors.white)),
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                ),
+                SizedBox(
+                  height: 40,
+                  width: MediaQuery.of(context).size.width / 6,
                   child: ElevatedButton(
                     style: ButtonStyle(
                       backgroundColor: WidgetStatePropertyAll(Colors.green),
@@ -124,27 +138,52 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
   }
 
   Future<void> submit(programId, context) async {
-    title = titleController.text;
-    program = programId.toString();
-    if (title == '') {
-      myToast('title is required');
-      return;
-    } else {
-      Navigator.pop(context);
-      try {
-        final response = await http.post(
-          Uri.parse("$baseUrl/add-deanery"),
-          headers: requestHeaders,
-          body: {"title": title, "program": program},
-        );
+    final title = titleController.text.trim();
 
-        final apiJson = jsonDecode(response.body);
-        myToast('${apiJson['msg']}');
-        apiData();
-      } catch (e) {
-        Fluttertoast.showToast(msg: "Something went wrong: $e");
-      }
+    var jsonData = jsonEncode({
+      "program_id": programId.toString(),
+      "title": title,
+    });
+
+    if (title.isEmpty) {
+      myToast('Title is required');
+      return;
     }
+
+    Navigator.pop(context);
+
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/add-deanery"),
+        headers: {
+          ...requestHeaders,
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: jsonData,
+      );
+
+      final apiJson = jsonDecode(response.body);
+      myToast('${apiJson['msg']}');
+      apiData();
+    } catch (e) {
+      sendErrorLog('$e');
+    }
+  }
+
+  Future<void> sendErrorLog(String errors) async {
+    var jsonData = jsonEncode({"detail": errors});
+
+    await http.post(
+      Uri.parse("$baseUrl/errorlog"),
+      headers: {
+        ...requestHeaders,
+        "Content-Type": "application/json", // 👈 force JSON
+        "Accept": "application/json",
+      },
+      body: jsonData,
+    );
+    Fluttertoast.showToast(msg: "Error has been Logged and Sent to Tech Team");
   }
 
   @override
@@ -163,8 +202,8 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.lightGreen,
-        tooltip: "Create new deanery",
+        backgroundColor: Colors.amber,
+        tooltip: "Create New",
         onPressed: () {
           addDeaneryDialog(context);
         },
@@ -175,57 +214,60 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
           : Column(
               children: [
                 // 🔍 Search box
-                BootstrapRow(
-                  children: [
-                    BootstrapCol(
-                      sizes: "col-lg-2",
-                      child: DropdownButton<int>(
-                        isExpanded: true,
-                        hint: Text("Select Campus"),
-                        value: selectedCampus,
-                        items: [
-                          DropdownMenuItem(value: null, child: Text("All")),
-                          DropdownMenuItem(value: 1, child: Text("Sonada")),
-                          DropdownMenuItem(value: 2, child: Text("Siliguri")),
-                        ],
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() {
-                              selectedCampus = value;
-                              _loading = true;
-                            });
-                            apiData(); // reload both deanery + program
-                          } else {
-                            setState(() {
-                              selectedCampus = null;
-                              _loading = true;
-                              apiData();
-                            });
-                          }
-                        },
-                      ),
-                    ),
-                    BootstrapCol(
-                      sizes: 'col-lg-4 col-sm-6 col-md-6',
-                      offsets: "offset-5",
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.search),
-                            hintText: 'Search by title...',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: BootstrapRow(
+                    children: [
+                      BootstrapCol(
+                        sizes: "col-lg-2",
+                        child: DropdownButton<int>(
+                          isExpanded: true,
+                          hint: Text("Select Campus"),
+                          value: selectedCampus,
+                          items: [
+                            DropdownMenuItem(value: null, child: Text("All")),
+                            DropdownMenuItem(value: 1, child: Text("Sonada")),
+                            DropdownMenuItem(value: 2, child: Text("Siliguri")),
+                          ],
                           onChanged: (value) {
-                            _source.search(value);
+                            if (value != null) {
+                              setState(() {
+                                selectedCampus = value;
+                                _loading = true;
+                              });
+                              apiData(); // reload both deanery + program
+                            } else {
+                              setState(() {
+                                selectedCampus = null;
+                                _loading = true;
+                                apiData();
+                              });
+                            }
                           },
                         ),
                       ),
-                    ),
-                  ],
+                      BootstrapCol(
+                        sizes: 'col-lg-4 col-sm-6 col-md-6',
+                        offsets: "offset-5",
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: TextField(
+                            controller: _searchController,
+                            decoration: InputDecoration(
+                              prefixIcon: const Icon(Icons.search),
+                              hintText: 'Search by title...',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onChanged: (value) {
+                              _source.search(value);
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 deaneryList.isEmpty
                     ? Center(
@@ -257,12 +299,11 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
                                   label: Text('#'),
                                   size: ColumnSize.L,
                                 ),
+                                DataColumn(label: Text('Deanery Name')),
                                 DataColumn2(
                                   label: Text('Campus - Program'),
                                   size: ColumnSize.L,
                                 ),
-
-                                DataColumn(label: Text('Deanery Name')),
                               ],
                               source: _source,
                               sortColumnIndex: 1,
@@ -328,6 +369,7 @@ class MyDataSource extends DataTableSource {
       index: index,
       cells: [
         DataCell(Text((index + 1).toString())), // Serial
+        DataCell(Text(apijson['title'].toUpperCase())),
         DataCell(
           Text(
             apijson['program']['campus']['name'] +
@@ -335,8 +377,6 @@ class MyDataSource extends DataTableSource {
                 apijson['program']['name'].toUpperCase(),
           ),
         ),
-
-        DataCell(Text(apijson['title'].toUpperCase())),
       ],
     );
   }
