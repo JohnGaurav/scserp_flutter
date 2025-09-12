@@ -10,9 +10,8 @@ import 'package:admin/pages/auth/forgot-password.dart';
 import 'package:admin/pages/dashboard.dart';
 import 'package:admin/pages/auth/login.dart';
 import 'package:admin/pages/master/campus.dart';
-import 'package:admin/pages/master/deanery-sil.dart';
-import 'package:admin/pages/master/deanery-son.dart';
 import 'package:admin/pages/master/deanery.dart';
+import 'package:admin/pages/master/errorlogbook.dart';
 import 'package:admin/pages/master/fee-structure-sil.dart';
 import 'package:admin/pages/master/fee-structure-son.dart';
 import 'package:admin/pages/master/hours.dart';
@@ -62,6 +61,9 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       initialRoute: '/dashboard',
       routes: {
+        //errorlogging
+        '/errorlogs': (ctx) => ErrorLogBookScreen(),
+
         "/login": (context) => LoginScreen(),
         '/dashboard': (context) => DashboardScreen(),
         '/forgot': (ctx) => ForgotScreen(),
@@ -69,7 +71,6 @@ class _MyAppState extends State<MyApp> {
         '/campus': (ctx) => CampusMasterScreen(),
         '/session': (ctx) => SessionScreen(),
         '/deanery': (ctx) => DeaneryScreen(),
-        '/deanery-sil': (ctx) => DeaneryMasterSilScreen(),
         '/fee-son': (ctx) => FeeStructureSonScreen(),
         '/fee-sil': (ctx) => FeeStructureSilScreen(),
         '/subjects': (ctx) => SubjectScreen(),

@@ -169,7 +169,13 @@ class _CustomDrawerState extends State<CustomDrawer> {
               menuList(context, 'Leaves', '//'),
             ],
           ),
-
+          InkWell(
+            child: ListTile(
+              leading: Icon(Symbols.apps, color: accentMain),
+              title: Text('ErrorLogs', style: TextStyle(color: accentMain)),
+            ),
+            onTap: () => Navigator.pushNamed(context, '/errorlogs'),
+          ),
           InkWell(
             child: ListTile(
               leading: Icon(Icons.person, color: accentMain),
