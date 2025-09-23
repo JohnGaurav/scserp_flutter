@@ -9,12 +9,19 @@ import 'package:admin/pages/admission/registration.dart';
 import 'package:admin/pages/auth/forgot-password.dart';
 import 'package:admin/pages/dashboard.dart';
 import 'package:admin/pages/auth/login.dart';
+import 'package:admin/pages/master/academic-block.dart';
 import 'package:admin/pages/master/campus.dart';
+import 'package:admin/pages/master/cog-level.dart';
+import 'package:admin/pages/master/deanery-single.dart';
 import 'package:admin/pages/master/deanery.dart';
+import 'package:admin/pages/master/department-single.dart';
+import 'package:admin/pages/master/departments.dart';
 import 'package:admin/pages/master/errorlogbook.dart';
 import 'package:admin/pages/master/fee-structure-sil.dart';
 import 'package:admin/pages/master/fee-structure-son.dart';
 import 'package:admin/pages/master/hours.dart';
+import 'package:admin/pages/master/lecture-halls.dart';
+import 'package:admin/pages/master/room-type.dart';
 import 'package:admin/pages/master/semesters.dart';
 import 'package:admin/pages/master/session.dart';
 import 'package:admin/pages/master/subject/subjects.dart';
@@ -34,20 +41,20 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  ThemeMode _themeMode = ThemeMode.light;
+  // ThemeMode _themeMode = ThemeMode.light;
 
-  void _toggleTheme() {
-    setState(() {
-      _themeMode = _themeMode == ThemeMode.light
-          ? ThemeMode.dark
-          : ThemeMode.light;
-    });
-  }
+  // void _toggleTheme() {
+  //   setState(() {
+  //     _themeMode = _themeMode == ThemeMode.light
+  //         ? ThemeMode.dark
+  //         : ThemeMode.light;
+  //   });
+  // }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      themeMode: _themeMode,
+      // themeMode: _themeMode,
       theme: ThemeData(
         brightness: Brightness.light,
         colorSchemeSeed: Colors.blue,
@@ -59,7 +66,7 @@ class _MyAppState extends State<MyApp> {
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
-      initialRoute: '/dashboard',
+      initialRoute: '/login',
       routes: {
         //errorlogging
         '/errorlogs': (ctx) => ErrorLogBookScreen(),
@@ -71,12 +78,20 @@ class _MyAppState extends State<MyApp> {
         '/campus': (ctx) => CampusMasterScreen(),
         '/session': (ctx) => SessionScreen(),
         '/deanery': (ctx) => DeaneryScreen(),
+        '/deanery-single': (ctx) => DeanerySingleScreen(),
         '/fee-son': (ctx) => FeeStructureSonScreen(),
         '/fee-sil': (ctx) => FeeStructureSilScreen(),
         '/subjects': (ctx) => SubjectScreen(),
         '/semesters': (ctx) => SemesterScreen(),
         '/weekdays': (ctx) => WeekdaysScreen(),
         '/hours': (ctx) => HoursScreen(),
+        '/departments': (ctx) => DepartmentScreen(),
+        '/view-department': (ctx) => DepartmentSingleScreen(),
+        '/room-type': (ctx) => RoomTypeScreen(),
+        '/lecture-hall': (ctx) => LectureHallScreen(),
+        '/cog-level-master': (ctx) => CogLevelScreen(),
+        '/acblock-master': (ctx) => AcademicBlockMaster(),
+
         //admission
         '/registration': (ctx) => AdmissionRegistrationScreen(),
         '/ug-applications': (ctx) => UGApplicationScreen(),

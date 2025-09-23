@@ -10,14 +10,14 @@ import 'package:flutter_bootstrap/flutter_bootstrap.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
 
-class DeaneryScreen extends StatefulWidget {
-  const DeaneryScreen({super.key});
+class DepartmentScreen extends StatefulWidget {
+  const DepartmentScreen({super.key});
 
   @override
-  State<DeaneryScreen> createState() => _DeaneryScreenState();
+  State<DepartmentScreen> createState() => _DepartmentScreenState();
 }
 
-class _DeaneryScreenState extends State<DeaneryScreen> {
+class _DepartmentScreenState extends State<DepartmentScreen> {
   int _rowsPerPage = 10;
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController titleController = TextEditingController();
@@ -25,43 +25,30 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
   late MyDataSource _source;
   bool _loading = true;
   int? selectedCampus;
-  List<dynamic> deaneryList = [];
-  List<dynamic> programList = [];
+  List<dynamic> tableDataList = [];
   String? program;
   String? title;
   int? selectedProgramId;
 
   Future<void> apiData() async {
-    if (selectedCampus == null) {
-      http.Response apiResponse = await http.get(
-        Uri.parse("$baseUrl/deanery"),
-        headers: requestHeaders,
-      );
-      final decoded = jsonDecode(apiResponse.body);
-      deaneryList = decoded['data']["deanery"];
-      programList = decoded['data']["programs"];
-    } else {
-      final uri = Uri.parse(
-        "$baseUrl/deanery",
-      ).replace(queryParameters: {"campus": selectedCampus.toString()});
+    http.Response apiResponse = await http.get(
+      Uri.parse("$baseUrl/departments"),
+      headers: requestHeaders,
+    );
+    final decoded = jsonDecode(apiResponse.body);
 
-      http.Response apiResponse = await http.get(uri, headers: requestHeaders);
-      final decoded = jsonDecode(apiResponse.body);
-      deaneryList = decoded['data']["deanery"];
-      programList = decoded['data']["programs"];
-    }
+    tableDataList = decoded['data']['departments'];
 
     setState(() {
       _source = MyDataSource(
-        List<Map<String, dynamic>>.from(deaneryList),
+        List<Map<String, dynamic>>.from(tableDataList),
         onRowTap: (row) {
           Navigator.pushNamed(
             context,
-            '/deanery-single',
+            '/view-department',
             arguments: {
-              'title': row['title'],
-              'campus': row['program']['campus']['name'],
-              'program': row['program']['name'],
+              'deptname': row['name'],
+              'subject_id': row['coresubject']['id'],
             },
           );
         },
@@ -85,7 +72,7 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
                       isExpanded: true,
                       hint: Text("Select a Program"),
                       value: selectedProgramId,
-                      items: programList.map((prog) {
+                      items: tableDataList.map((prog) {
                         return DropdownMenuItem<int>(
                           value: (prog["id"]),
                           // set id as value
@@ -209,7 +196,7 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Deanery', style: TextStyle(color: Colors.white)),
+        title: Text('Department List', style: TextStyle(color: Colors.white)),
         backgroundColor: accentMain,
         elevation: 5.0,
       ),
@@ -282,7 +269,7 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
                     ],
                   ),
                 ),
-                deaneryList.isEmpty
+                tableDataList.isEmpty
                     ? Center(
                         child: Text(
                           'No Data Found',
@@ -310,14 +297,11 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
                               columns: const [
                                 DataColumn2(
                                   label: Text('#'),
-                                  size: ColumnSize.L,
+                                  size: ColumnSize.S,
                                 ),
-                                DataColumn(label: Text('Deanery Name')),
-                                DataColumn(label: Text('Departments')),
-                                DataColumn2(
-                                  label: Text('Campus - Program'),
-                                  size: ColumnSize.L,
-                                ),
+                                DataColumn(label: Text('Campus|Program')),
+                                DataColumn(label: Text('Department Name')),
+                                DataColumn(label: Text('Core Subject')),
                               ],
                               source: _source,
                               sortColumnIndex: 1,
@@ -355,7 +339,7 @@ class MyDataSource extends DataTableSource {
           .toList();
 
       _filteredData = _allData.where((row) {
-        final title = _normalize(row['title']?.toString() ?? '');
+        final title = _normalize(row['name']?.toString() ?? '');
         return matchAll
             ? keywords.every((kw) => title.contains(kw))
             : keywords.any((kw) => title.contains(kw));
@@ -374,16 +358,36 @@ class MyDataSource extends DataTableSource {
       cells: [
         DataCell(Text((index + 1).toString())),
         DataCell(
-          InkWell(
-            onTap: () => onRowTap(apijson), // 👈 use the callback
-            child: Text(apijson['title'].toUpperCase()),
+          Text(
+            '${apijson['campus']['name']} - ${apijson['program']['name']}'
+                .toUpperCase(),
           ),
         ),
-        DataCell(Text('${apijson['deanerydeptpivot'].length}')),
         DataCell(
-          Text(
-            '${apijson['program']['campus']['name']} - ${apijson['program']['name'].toUpperCase()}',
+          InkWell(
+            onTap: () => onRowTap(apijson), // 👈 use the callback
+            child: Text(
+              apijson['name'].toUpperCase(),
+              style: TextStyle(color: Colors.deepPurple),
+            ),
           ),
+        ),
+        DataCell(
+          apijson['coresubject'] != null
+              ? Text(
+                  apijson['coresubject']['title'].toUpperCase(),
+                  style: TextStyle(color: Colors.teal),
+                )
+              : ElevatedButton(
+                  onPressed: () {},
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStateProperty.all(Colors.redAccent),
+                  ),
+                  child: Text(
+                    'Link Subject',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
         ),
       ],
     );

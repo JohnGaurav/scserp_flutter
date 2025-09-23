@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:admin/color/color-palette.dart';
 import 'package:admin/globalwidgets/custom_widget.dart';
+import 'package:admin/globalwidgets/drawer.dart';
 import 'package:admin/services/api_cred.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
@@ -10,103 +11,62 @@ import 'package:flutter_bootstrap/flutter_bootstrap.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
 
-class DeaneryScreen extends StatefulWidget {
-  const DeaneryScreen({super.key});
+class CogLevelScreen extends StatefulWidget {
+  const CogLevelScreen({super.key});
 
   @override
-  State<DeaneryScreen> createState() => _DeaneryScreenState();
+  State<CogLevelScreen> createState() => _CogLevelScreenState();
 }
 
-class _DeaneryScreenState extends State<DeaneryScreen> {
+class _CogLevelScreenState extends State<CogLevelScreen> {
   int _rowsPerPage = 10;
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController titleController = TextEditingController();
+  final TextEditingController shortnameController = TextEditingController();
 
   late MyDataSource _source;
   bool _loading = true;
-  int? selectedCampus;
-  List<dynamic> deaneryList = [];
-  List<dynamic> programList = [];
-  String? program;
-  String? title;
-  int? selectedProgramId;
+  List<dynamic> dataList = [];
 
   Future<void> apiData() async {
-    if (selectedCampus == null) {
-      http.Response apiResponse = await http.get(
-        Uri.parse("$baseUrl/deanery"),
-        headers: requestHeaders,
-      );
-      final decoded = jsonDecode(apiResponse.body);
-      deaneryList = decoded['data']["deanery"];
-      programList = decoded['data']["programs"];
-    } else {
-      final uri = Uri.parse(
-        "$baseUrl/deanery",
-      ).replace(queryParameters: {"campus": selectedCampus.toString()});
-
-      http.Response apiResponse = await http.get(uri, headers: requestHeaders);
-      final decoded = jsonDecode(apiResponse.body);
-      deaneryList = decoded['data']["deanery"];
-      programList = decoded['data']["programs"];
-    }
+    http.Response apiResponse = await http.get(
+      Uri.parse("$baseUrl/coglevel-master"),
+      headers: requestHeaders,
+    );
+    final decoded = jsonDecode(apiResponse.body);
+    dataList = decoded['data'];
 
     setState(() {
-      _source = MyDataSource(
-        List<Map<String, dynamic>>.from(deaneryList),
-        onRowTap: (row) {
-          Navigator.pushNamed(
-            context,
-            '/deanery-single',
-            arguments: {
-              'title': row['title'],
-              'campus': row['program']['campus']['name'],
-              'program': row['program']['name'],
-            },
-          );
-        },
-      );
+      _source = MyDataSource(List<Map<String, dynamic>>.from(dataList));
       _loading = false;
     });
   }
 
-  Future<void> addDeaneryDialog(context) async {
+  Future<void> addDialog(context) async {
     return showDialog<void>(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text('Add New Deanery '),
+              title: Text('Add New'),
               content: SingleChildScrollView(
                 child: ListBody(
                   children: <Widget>[
-                    DropdownButton<int>(
-                      isExpanded: true,
-                      hint: Text("Select a Program"),
-                      value: selectedProgramId,
-                      items: programList.map((prog) {
-                        return DropdownMenuItem<int>(
-                          value: (prog["id"]),
-                          // set id as value
-                          child: Text(
-                            prog['campus']["name"] + ' - ' + prog["name"],
-                          ), // display name
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedProgramId = value;
-                        });
-                      },
-                    ),
-                    SizedBox(height: 10.0),
                     TextFormField(
                       controller: titleController,
                       keyboardType: TextInputType.text,
                       decoration: InputDecoration(
-                        hintText: "Name...",
-                        labelText: "Deanery Name",
+                        hintText: "Full Name...",
+                        labelText: "Enter Here....",
+                      ),
+                    ),
+                    TextFormField(
+                      controller: shortnameController,
+                      keyboardType: TextInputType.text,
+                      decoration: InputDecoration(
+                        hintText: "Short Name...",
+                        labelText: "Enter Here....",
                       ),
                     ),
                   ],
@@ -138,7 +98,7 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
                       style: TextStyle(color: Colors.white),
                     ),
                     onPressed: () {
-                      submit(selectedProgramId, context); //testing
+                      submit(context); //testing
                     },
                   ),
                 ),
@@ -150,13 +110,10 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
     );
   }
 
-  Future<void> submit(programId, context) async {
+  Future<void> submit(context) async {
     final title = titleController.text.trim();
-
-    var jsonData = jsonEncode({
-      "program_id": programId.toString(),
-      "title": title,
-    });
+    final shortname = shortnameController.text.trim();
+    var jsonData = jsonEncode({"fullname": title, "shortname": shortname});
 
     if (title.isEmpty) {
       myToast('Title is required');
@@ -167,7 +124,7 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse("$baseUrl/add-deanery"),
+        Uri.parse("$baseUrl/add-coglevel"),
         headers: {
           ...requestHeaders,
           "Content-Type": "application/json",
@@ -177,7 +134,7 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
       );
 
       final apiJson = jsonDecode(response.body);
-      myToast('${apiJson['msg']}');
+      myToast('${apiJson['message']}');
       apiData();
     } catch (e) {
       sendErrorLog('$e');
@@ -209,16 +166,21 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Deanery', style: TextStyle(color: Colors.white)),
+        iconTheme: IconThemeData(color: Colors.white),
+        title: Text(
+          'Cognitive Level Master',
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: accentMain,
         elevation: 5.0,
       ),
+      drawer: CustomDrawer(),
       floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.amber,
         tooltip: "Create New",
         onPressed: () {
-          addDeaneryDialog(context);
+          addDialog(context);
         },
         child: Icon(Icons.add),
       ),
@@ -232,36 +194,8 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
                   child: BootstrapRow(
                     children: [
                       BootstrapCol(
-                        sizes: "col-lg-2",
-                        child: DropdownButton<int>(
-                          isExpanded: true,
-                          hint: Text("Select Campus"),
-                          value: selectedCampus,
-                          items: [
-                            DropdownMenuItem(value: null, child: Text("All")),
-                            DropdownMenuItem(value: 1, child: Text("Sonada")),
-                            DropdownMenuItem(value: 2, child: Text("Siliguri")),
-                          ],
-                          onChanged: (value) {
-                            if (value != null) {
-                              setState(() {
-                                selectedCampus = value;
-                                _loading = true;
-                              });
-                              apiData(); // reload both deanery + program
-                            } else {
-                              setState(() {
-                                selectedCampus = null;
-                                _loading = true;
-                                apiData();
-                              });
-                            }
-                          },
-                        ),
-                      ),
-                      BootstrapCol(
                         sizes: 'col-lg-4 col-sm-6 col-md-6',
-                        offsets: "offset-5",
+                        offsets: "offset-7",
                         child: Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: TextField(
@@ -282,7 +216,7 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
                     ],
                   ),
                 ),
-                deaneryList.isEmpty
+                dataList.isEmpty
                     ? Center(
                         child: Text(
                           'No Data Found',
@@ -312,12 +246,8 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
                                   label: Text('#'),
                                   size: ColumnSize.L,
                                 ),
-                                DataColumn(label: Text('Deanery Name')),
-                                DataColumn(label: Text('Departments')),
-                                DataColumn2(
-                                  label: Text('Campus - Program'),
-                                  size: ColumnSize.L,
-                                ),
+                                DataColumn(label: Text('Fullname')),
+                                DataColumn(label: Text('Shortname')),
                               ],
                               source: _source,
                               sortColumnIndex: 1,
@@ -335,9 +265,8 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
 class MyDataSource extends DataTableSource {
   final List<Map<String, dynamic>> _allData;
   List<Map<String, dynamic>> _filteredData = [];
-  final void Function(Map<String, dynamic>) onRowTap; // 👈 callback added
 
-  MyDataSource(this._allData, {required this.onRowTap}) {
+  MyDataSource(this._allData) {
     _filteredData = List.from(_allData);
   }
 
@@ -355,7 +284,7 @@ class MyDataSource extends DataTableSource {
           .toList();
 
       _filteredData = _allData.where((row) {
-        final title = _normalize(row['title']?.toString() ?? '');
+        final title = _normalize(row['fullname']?.toString() ?? '');
         return matchAll
             ? keywords.every((kw) => title.contains(kw))
             : keywords.any((kw) => title.contains(kw));
@@ -373,18 +302,8 @@ class MyDataSource extends DataTableSource {
       index: index,
       cells: [
         DataCell(Text((index + 1).toString())),
-        DataCell(
-          InkWell(
-            onTap: () => onRowTap(apijson), // 👈 use the callback
-            child: Text(apijson['title'].toUpperCase()),
-          ),
-        ),
-        DataCell(Text('${apijson['deanerydeptpivot'].length}')),
-        DataCell(
-          Text(
-            '${apijson['program']['campus']['name']} - ${apijson['program']['name'].toUpperCase()}',
-          ),
-        ),
+        DataCell(Text(apijson['fullname'].toUpperCase())),
+        DataCell(Text(apijson['shortname'].toUpperCase())),
       ],
     );
   }

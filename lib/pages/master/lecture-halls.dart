@@ -2,111 +2,103 @@ import 'dart:convert';
 
 import 'package:admin/color/color-palette.dart';
 import 'package:admin/globalwidgets/custom_widget.dart';
+import 'package:admin/globalwidgets/drawer.dart';
 import 'package:admin/services/api_cred.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bootstrap/flutter_bootstrap.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
 
-class DeaneryScreen extends StatefulWidget {
-  const DeaneryScreen({super.key});
+class LectureHallScreen extends StatefulWidget {
+  const LectureHallScreen({super.key});
 
   @override
-  State<DeaneryScreen> createState() => _DeaneryScreenState();
+  State<LectureHallScreen> createState() => _LectureHallScreenState();
 }
 
-class _DeaneryScreenState extends State<DeaneryScreen> {
+class _LectureHallScreenState extends State<LectureHallScreen> {
   int _rowsPerPage = 10;
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController titleController = TextEditingController();
 
   late MyDataSource _source;
   bool _loading = true;
-  int? selectedCampus;
-  List<dynamic> deaneryList = [];
-  List<dynamic> programList = [];
-  String? program;
-  String? title;
-  int? selectedProgramId;
+  List<dynamic> lecturehalls = [];
+  List<dynamic> acblocks = [];
+  List<dynamic> roomtypes = [];
+  int? selectedBlockId, selectedRoomTypeId;
 
   Future<void> apiData() async {
-    if (selectedCampus == null) {
-      http.Response apiResponse = await http.get(
-        Uri.parse("$baseUrl/deanery"),
-        headers: requestHeaders,
-      );
-      final decoded = jsonDecode(apiResponse.body);
-      deaneryList = decoded['data']["deanery"];
-      programList = decoded['data']["programs"];
-    } else {
-      final uri = Uri.parse(
-        "$baseUrl/deanery",
-      ).replace(queryParameters: {"campus": selectedCampus.toString()});
-
-      http.Response apiResponse = await http.get(uri, headers: requestHeaders);
-      final decoded = jsonDecode(apiResponse.body);
-      deaneryList = decoded['data']["deanery"];
-      programList = decoded['data']["programs"];
-    }
+    http.Response apiResponse = await http.get(
+      Uri.parse("$baseUrl/lecturehalls"),
+      headers: requestHeaders,
+    );
+    final decoded = jsonDecode(apiResponse.body);
+    lecturehalls = decoded['data']["halldata"];
+    acblocks = decoded['data']["acblocks"];
+    roomtypes = decoded['data']["roomtypes"];
 
     setState(() {
-      _source = MyDataSource(
-        List<Map<String, dynamic>>.from(deaneryList),
-        onRowTap: (row) {
-          Navigator.pushNamed(
-            context,
-            '/deanery-single',
-            arguments: {
-              'title': row['title'],
-              'campus': row['program']['campus']['name'],
-              'program': row['program']['name'],
-            },
-          );
-        },
-      );
+      _source = MyDataSource(List<Map<String, dynamic>>.from(lecturehalls));
       _loading = false;
     });
   }
 
-  Future<void> addDeaneryDialog(context) async {
+  Future<void> addNewDialog(context) async {
     return showDialog<void>(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text('Add New Deanery '),
+              title: Text('Add New'),
               content: SingleChildScrollView(
                 child: ListBody(
                   children: <Widget>[
                     DropdownButton<int>(
                       isExpanded: true,
-                      hint: Text("Select a Program"),
-                      value: selectedProgramId,
-                      items: programList.map((prog) {
+                      hint: Text("Select Academic Block"),
+                      value: selectedBlockId,
+                      items: acblocks.map((block) {
                         return DropdownMenuItem<int>(
-                          value: (prog["id"]),
+                          value: (block["id"]),
                           // set id as value
-                          child: Text(
-                            prog['campus']["name"] + ' - ' + prog["name"],
-                          ), // display name
+                          child: Text(block['title']), // display name
                         );
                       }).toList(),
                       onChanged: (value) {
                         setState(() {
-                          selectedProgramId = value;
+                          selectedBlockId = value;
                         });
                       },
                     ),
+                    SizedBox(height: 10.0),
+                    DropdownButton<int>(
+                      isExpanded: true,
+                      hint: Text("Select Room Type"),
+                      value: selectedRoomTypeId,
+                      items: roomtypes.map((room) {
+                        return DropdownMenuItem<int>(
+                          value: (room["id"]),
+                          // set id as value
+                          child: Text(room['title']), // display name
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedRoomTypeId = value;
+                        });
+                      },
+                    ),
+
                     SizedBox(height: 10.0),
                     TextFormField(
                       controller: titleController,
                       keyboardType: TextInputType.text,
                       decoration: InputDecoration(
                         hintText: "Name...",
-                        labelText: "Deanery Name",
+                        labelText: "Lecture Hall Name",
                       ),
                     ),
                   ],
@@ -138,7 +130,11 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
                       style: TextStyle(color: Colors.white),
                     ),
                     onPressed: () {
-                      submit(selectedProgramId, context); //testing
+                      submit(
+                        selectedBlockId,
+                        selectedRoomTypeId,
+                        context,
+                      ); //testing
                     },
                   ),
                 ),
@@ -150,11 +146,12 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
     );
   }
 
-  Future<void> submit(programId, context) async {
+  Future<void> submit(acblockId, roomTypeId, context) async {
     final title = titleController.text.trim();
 
-    var jsonData = jsonEncode({
-      "program_id": programId.toString(),
+    var postBody = jsonEncode({
+      "acblock_id": acblockId,
+      "roomtype_id": roomTypeId,
       "title": title,
     });
 
@@ -167,17 +164,17 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse("$baseUrl/add-deanery"),
+        Uri.parse("$baseUrl/add-lecture-hall"),
         headers: {
           ...requestHeaders,
           "Content-Type": "application/json",
           "Accept": "application/json",
         },
-        body: jsonData,
+        body: postBody,
       );
 
       final apiJson = jsonDecode(response.body);
-      myToast('${apiJson['msg']}');
+      myToast('${apiJson['message']}');
       apiData();
     } catch (e) {
       sendErrorLog('$e');
@@ -209,16 +206,22 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Deanery', style: TextStyle(color: Colors.white)),
+        iconTheme: IconThemeData(color: Colors.white),
+        title: Text(
+          'Lecture Halls Master',
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: accentMain,
         elevation: 5.0,
       ),
+      drawer: CustomDrawer(),
+
       floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.amber,
         tooltip: "Create New",
         onPressed: () {
-          addDeaneryDialog(context);
+          addNewDialog(context);
         },
         child: Icon(Icons.add),
       ),
@@ -232,36 +235,8 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
                   child: BootstrapRow(
                     children: [
                       BootstrapCol(
-                        sizes: "col-lg-2",
-                        child: DropdownButton<int>(
-                          isExpanded: true,
-                          hint: Text("Select Campus"),
-                          value: selectedCampus,
-                          items: [
-                            DropdownMenuItem(value: null, child: Text("All")),
-                            DropdownMenuItem(value: 1, child: Text("Sonada")),
-                            DropdownMenuItem(value: 2, child: Text("Siliguri")),
-                          ],
-                          onChanged: (value) {
-                            if (value != null) {
-                              setState(() {
-                                selectedCampus = value;
-                                _loading = true;
-                              });
-                              apiData(); // reload both deanery + program
-                            } else {
-                              setState(() {
-                                selectedCampus = null;
-                                _loading = true;
-                                apiData();
-                              });
-                            }
-                          },
-                        ),
-                      ),
-                      BootstrapCol(
                         sizes: 'col-lg-4 col-sm-6 col-md-6',
-                        offsets: "offset-5",
+                        offsets: "offset-7",
                         child: Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: TextField(
@@ -282,7 +257,7 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
                     ],
                   ),
                 ),
-                deaneryList.isEmpty
+                lecturehalls.isEmpty
                     ? Center(
                         child: Text(
                           'No Data Found',
@@ -310,14 +285,11 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
                               columns: const [
                                 DataColumn2(
                                   label: Text('#'),
-                                  size: ColumnSize.L,
+                                  size: ColumnSize.S,
                                 ),
-                                DataColumn(label: Text('Deanery Name')),
-                                DataColumn(label: Text('Departments')),
-                                DataColumn2(
-                                  label: Text('Campus - Program'),
-                                  size: ColumnSize.L,
-                                ),
+                                DataColumn(label: Text('Academic Block')),
+                                DataColumn(label: Text('Lecture Hall Name')),
+                                DataColumn(label: Text('Room Type')),
                               ],
                               source: _source,
                               sortColumnIndex: 1,
@@ -335,9 +307,9 @@ class _DeaneryScreenState extends State<DeaneryScreen> {
 class MyDataSource extends DataTableSource {
   final List<Map<String, dynamic>> _allData;
   List<Map<String, dynamic>> _filteredData = [];
-  final void Function(Map<String, dynamic>) onRowTap; // 👈 callback added
+  // 👈 callback added
 
-  MyDataSource(this._allData, {required this.onRowTap}) {
+  MyDataSource(this._allData) {
     _filteredData = List.from(_allData);
   }
 
@@ -373,18 +345,9 @@ class MyDataSource extends DataTableSource {
       index: index,
       cells: [
         DataCell(Text((index + 1).toString())),
-        DataCell(
-          InkWell(
-            onTap: () => onRowTap(apijson), // 👈 use the callback
-            child: Text(apijson['title'].toUpperCase()),
-          ),
-        ),
-        DataCell(Text('${apijson['deanerydeptpivot'].length}')),
-        DataCell(
-          Text(
-            '${apijson['program']['campus']['name']} - ${apijson['program']['name'].toUpperCase()}',
-          ),
-        ),
+        DataCell(Text(' ${apijson['acblockmaster']['title'].toUpperCase()}')),
+        DataCell(Text(apijson['title'].toUpperCase())),
+        DataCell(Text(' ${apijson['roomtypemaster']['title'].toUpperCase()}')),
       ],
     );
   }

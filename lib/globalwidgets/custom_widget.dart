@@ -65,3 +65,7 @@ Widget buildStatCard(String title, String value, IconData icon, Color color) {
 Future<bool?> myToast(String msg) {
   return Fluttertoast.showToast(msg: msg, gravity: ToastGravity.TOP_RIGHT);
 }
+
+Widget colorText(String? title, Color? colors) {
+  return Text('$title', style: TextStyle(color: colors));
+}

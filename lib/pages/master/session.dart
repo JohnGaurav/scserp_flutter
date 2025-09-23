@@ -1,9 +1,13 @@
+import 'dart:convert';
+
 import 'package:admin/color/color-palette.dart';
+import 'package:admin/globalwidgets/custom_widget.dart';
 import 'package:admin/globalwidgets/drawer.dart';
 import 'package:admin/models/chart_model.dart';
+import 'package:admin/services/api_cred.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bootstrap/flutter_bootstrap.dart';
-import 'package:syncfusion_flutter_charts/charts.dart';
+import 'package:http/http.dart' as http;
 
 class SessionScreen extends StatefulWidget {
   const SessionScreen({super.key});
@@ -20,9 +24,25 @@ class _SessionScreenState extends State<SessionScreen> {
     AnnualRevenueData('Revenue', 5000.00, Colors.black),
     AnnualRevenueData('Revenue', 5000.00, Colors.black),
   ];
+  bool _loading = true;
+  List<dynamic> sessionList = [];
+
+  Future<void> apiData() async {
+    http.Response apiResponse = await http.get(
+      Uri.parse("$baseUrl/annual-sessions"),
+      headers: requestHeaders,
+    );
+    final decoded = jsonDecode(apiResponse.body);
+    setState(() {
+      sessionList = decoded["data"];
+      _loading = false;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
+    apiData();
   }
 
   void addModal(context) {
@@ -98,58 +118,40 @@ class _SessionScreenState extends State<SessionScreen> {
         child: Icon(Icons.add),
       ),
 
-      body: BootstrapContainer(
-        fluid: true,
-        padding: const EdgeInsets.all(12),
-        children: [
-          BootstrapRow(
-            height: 140,
-            children: [
-              BootstrapCol(
-                sizes: 'col-12 col-md-6 col-lg-3',
-                child: _buildStatCard(
-                  '2015',
-                  'Enrolled 1,245',
-                  Icons.people,
-                  Colors.red,
+      body: _loading
+          ? Center(child: CircularProgressIndicator())
+          : BootstrapContainer(
+              fluid: true,
+              padding: const EdgeInsets.all(12),
+              children: [
+                BootstrapRow(
+                  height: 140,
+                  children: sessionList.map((item) {
+                    return BootstrapCol(
+                      sizes: 'col-12 col-md-6 col-lg-3',
+                      child: _buildStatCard(
+                        '${item['title']}',
+                        'Enrolled 1,245',
+                        Icons.people,
+                        Colors.blue,
+                        item['status'],
+                      ),
+                    );
+                  }).toList(),
                 ),
-              ),
-              BootstrapCol(
-                sizes: 'col-12 col-md-6 col-lg-3',
-                child: _buildStatCard(
-                  '2015',
-                  'Enrolled 1,245',
-                  Icons.people,
-                  Colors.green,
-                ),
-              ),
-              BootstrapCol(
-                sizes: 'col-12 col-md-6 col-lg-3',
-                child: _buildStatCard(
-                  '2015',
-                  'Enrolled 1,245',
-                  Icons.people,
-                  Colors.orange,
-                ),
-              ),
-              BootstrapCol(
-                sizes: 'col-12 col-md-6 col-lg-3',
-                child: _buildStatCard(
-                  '2015',
-                  'Enrolled 1,245',
-                  Icons.people,
-                  Colors.deepPurple,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+              ],
+            ),
     );
   }
 }
 
-Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+Widget _buildStatCard(
+  String title,
+  String value,
+  IconData icon,
+  Color color,
+  int status,
+) {
   return Card(
     color: color.withValues(alpha: 0.5),
     elevation: 3,
@@ -185,7 +187,17 @@ Widget _buildStatCard(String title, String value, IconData icon, Color color) {
 
               const SizedBox(height: 10),
 
-              ElevatedButton(onPressed: () {}, child: Text('Active')),
+              ElevatedButton(
+                style: ButtonStyle(
+                  backgroundColor: WidgetStatePropertyAll(
+                    status == 1 ? Colors.lime : Colors.red,
+                  ),
+                ),
+                onPressed: () {},
+                child: status == 1
+                    ? colorText('Active', Colors.black)
+                    : colorText('Inactive', Colors.white),
+              ),
             ],
           ),
         ],
